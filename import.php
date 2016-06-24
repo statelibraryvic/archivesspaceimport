@@ -1,5 +1,9 @@
 <?php
 
+$dbh      = opendb();
+$filename = "sample.csv";
+$csvArray = ImportCSV2Array($filename);
+
 // Authenticate user
 $params = array(
    "password" => "***REMOVED***"
@@ -7,48 +11,82 @@ $params = array(
 $authenticationString = json_decode(httpPost("***REMOVED***/users/***REMOVED***/login",$params));
 echo $authenticationString->session . "\n";
 
-$data = array("jsonmodel_type" => "archival_object",
-              "title"          => "zztest6",
-              "level"          => "series",
-              "extents"        => [[
-                                    'portion'           => "whole",
-                                    'extent_type'       => "metres",
-                                    'container_summary' => "2 boxes",
-                                    'number'            => "1111",
-                                    'jsonmodel_type'    => "extent"
-                                  ]],
-              "dates"          => [[
-                                    "date_type"         => "inclusive",
-                                    "label"             => "creation",
-                                    "jsonmodel_type"    => "date",
-                                    "expression"        => "1921/1922"
-                                  ]],
-              "parent"         => [
-                                    "ref"    => "/repositories/5/archival_objects/6769"
-                                  ],
-              "resource"       => [
-                                    "ref"    => "/repositories/5/resources/29"
-                                  ]
-              );
-// DEBUG
-//var_dump($data) . "\n";
-//$data_string = json_encode($data);
-//print $data_string . "\n";
-//exit;
+// Loop through CSV file
+foreach ($csvArray as $row) {
+  print $row['component_id'] . "\n";
 
-$ch = curl_init('***REMOVED***/repositories/5/archival_objects');
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Content-Type: application/json',
-    'Content-Length: ' . strlen($data_string),
-    'X-ArchivesSpace-Session: ' . $authenticationString->session)
-);
+  $data = array("jsonmodel_type" => "archival_object",
+                "title"          => $row['title'],
+                "level"          => $row['level'],
+                "extents"        => [[
+                                      'portion'           => $row['extents_portion'],
+                                      'extent_type'       => $row['extents_type'],
+                                      'container_summary' => $row['extents_container_summary'],
+                                      'number'            => $row['extents_number'],
+                                      'jsonmodel_type'    => "extent"
+                                    ]],
+                "dates"          => [[
+                                      "date_type"         => $row['dates_type'],
+                                      "label"             => $row['dates_label'],
+                                      "jsonmodel_type"    => "date",
+                                      "expression"        => $row['dates_expression']
+                                    ]],
+                //"parent"         => [
+                //                      "ref"    => "/repositories/5/archival_objects/79383"
+                //                    ],
+                "resource"       => [
+                                      "ref"    => "/repositories/5/resources/" . $row['resource']
+                                    ],
+                "component_id"   => $row['component_id']
+  );
 
-$result = curl_exec($ch);
+  // Find archival object by component_id
+  if ($row['parent']) {
+    $query = "SELECT id FROM archival_object WHERE component_id = ? AND root_record_id = ?";
+    $stmt = $dbh->prepare($query);
 
-echo $result;
+    $stmt->bind_param('si', $row['parent'],$row['resource']);
+    $stmt->execute();
+
+    // Hopefully there is only one result returned, if not we do not process any more instructions within the loop
+    $stmt->store_result();
+    $row_cnt = $stmt->num_rows;
+
+    if ($row_cnt == 1) {
+      $stmt->bind_result($parent_id);
+      $stmt->fetch();
+      $data['parent'] = [ "ref" => "/repositories/5/archival_objects/" . $parent_id ];
+    } elseif ($row_cnt == 0) {
+      echo "The parent id you specified does not exist...skipping row\n"; continue;
+    } elseif ($row_cnt > 1) {
+      echo "More than 1 parent matches...skipping row\n"; continue;
+    }
+
+  } // End If parent
+
+  $data_string = json_encode($data);
+  // DEBUG
+  //var_dump($data) . "\n";
+  print $data_string . "\n";
+
+
+  // API request
+  $ch = curl_init('***REMOVED***/repositories/5/archival_objects');
+  curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+      'Content-Type: application/json',
+      'Content-Length: ' . strlen($data_string),
+      'X-ArchivesSpace-Session: ' . $authenticationString->session)
+  );
+
+  $result = curl_exec($ch);
+
+  echo $result;
+
+} // End For Loop
+
 
 function httpPost($url,$params)  {
   $postData = '';
@@ -71,6 +109,47 @@ function httpPost($url,$params)  {
 
     curl_close($ch);
     return $output;
+}
+
+function ImportCSV2Array($filename) {
+  $row = 0;
+  $col = 0;
+
+  $handle = @fopen($filename, "r");
+  if ($handle) {
+    while (($row = fgetcsv($handle, 4096)) !== false) {
+      if (empty($fields)) {
+        $fields = $row;
+        continue;
+      }
+
+      foreach ($row as $k=>$value) {
+        $results[$col][$fields[$k]] = $value;
+      }
+      $col++;
+      unset($row);
+    }
+    if (!feof($handle)) {
+      echo "Error: unexpected fgets() failn";
+    }
+    fclose($handle);
+  }
+
+  return $results;
+}
+
+function openDB() {
+
+  $dbh = new mysqli("***REMOVED***","***REMOVED***","***REMOVED***","***REMOVED***");
+
+  /* check connection */
+  if ($dbh->connect_errno) {
+    printf("Connect failed: %s\n", $dbh->connect_error);
+    exit();
+  }
+
+  return $dbh;
+
 }
 
 ?>

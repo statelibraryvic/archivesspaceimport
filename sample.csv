@@ -1,0 +1,6 @@
+jsonmodel_type,title,level,extents_portion,extents_type,extents_container_summary,extents_number,dates_type,dates_label,dates_expression,parent,resource,component_id
+archival_object,Material from Coles Myer merger press conferences,series,whole,metres,5 boxes,1,single,creation,2001,,22,COMY29170
+archival_object,Material related to Coles Myer merger,subseries,whole,metres,4 boxes,1,single,creation,2001,COMY29170,22,COMY29171
+archival_object,News bulletin - Coles Myer merger announced,file,whole,metres,3 boxes,1,single,creation,2001,COMY29171,22,COMY29172
+archival_object,Purchase offer booklet for Myer Emporium Ltd. shares,otherlevel,whole,metres,2 boxes,1,single,creation,2001,COMY29172,22,COMY29173
+archival_object,"News bulletin - ""Coles Proposes Merger with Myer""",item,whole,metres,1 boxes,1,single,creation,2001,COMY29173,22,COMY29174
