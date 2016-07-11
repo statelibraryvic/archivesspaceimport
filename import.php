@@ -13,7 +13,7 @@ echo $authenticationString->session . "\n";
 
 // Loop through CSV file
 foreach ($csvArray as $row) {
-  print $row['component_id'] . "\n";
+  print 'Loading ' . $row['component_id'] . "\n";
 
   $data = array("jsonmodel_type" => "archival_object",
                 "title"          => $row['title'],
@@ -31,14 +31,20 @@ foreach ($csvArray as $row) {
                                       "jsonmodel_type"    => "date",
                                       "expression"        => $row['dates_expression']
                                     ]],
-                //"parent"         => [
-                //                      "ref"    => "/repositories/5/archival_objects/79383"
-                //                    ],
                 "resource"       => [
                                       "ref"    => "/repositories/5/resources/" . $row['resource']
                                     ],
                 "component_id"   => $row['component_id']
   );
+
+  // Add linked agent if provided
+  $agent_ref = linkAgent($row,$dbh,$authenticationString);
+  if (isset($agent_ref)) {
+    $data['linked_agents'] = [[
+                              "role"  => 'source',
+                               "ref"  => $agent_ref
+                             ]];
+  }
 
   // Find archival object by component_id
   if ($row['parent']) {
@@ -65,9 +71,10 @@ foreach ($csvArray as $row) {
   } // End If parent
 
   $data_string = json_encode($data);
+
   // DEBUG
   //var_dump($data) . "\n";
-  print $data_string . "\n";
+  // print $data_string . "\n";
 
 
   // API request
@@ -150,6 +157,65 @@ function openDB() {
 
   return $dbh;
 
+}
+
+function linkAgent($row,$dbh,$authenticationString) {
+
+  // Make sure that the agent has all required fields
+  if ($row['agent_type'] && $row['agent_primary_name']) {
+
+    $query = "SELECT agent_corporate_entity_id FROM name_corporate_entity WHERE primary_name = ?";
+    $stmt = $dbh->prepare($query);
+
+    $stmt->bind_param('s', $row['agent_primary_name']);
+    $stmt->execute();
+
+    // Hopefully there is only one result returned, if not we do not process any more instructions within the loop
+    $stmt->store_result();
+    $row_cnt = $stmt->num_rows;
+
+    if ($row_cnt == 1) {
+      $stmt->bind_result($agent_id);
+      $stmt->fetch();
+      $agent = "/agents/corporate_entities/" . $agent_id;
+
+      return $agent;
+
+    } elseif ($row_cnt == 0) {
+
+      // API request
+      $data = array("jsonmodel_type" => "agent_corporate_entity",
+                    "agent_type"     => "agent_corporate_entity",
+                    "names"          => [[
+                                          "jsonmodel_type" => "name_corporate_entity",
+                                          "sort_name"      => $row['agent_primary_name'],
+                                          "primary_name"   => $row['agent_primary_name'],
+                                          "source"          => "ingest"
+                                        ]]
+      );
+      $data_string = json_encode($data);
+
+      $ch = curl_init('***REMOVED***/agents/corporate_entities');
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+      curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+          'Content-Type: application/json',
+          'Content-Length: ' . strlen($data_string),
+          'X-ArchivesSpace-Session: ' . $authenticationString->session)
+      );
+
+      $result = curl_exec($ch);
+      echo $result;
+
+      $result = json_decode($result);
+      return $result->uri;
+
+    } elseif ($row_cnt > 1) {
+      echo "More than 1 agent matches...skipping row\n";
+    }
+
+  }
 }
 
 ?>
