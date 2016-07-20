@@ -1,6 +1,6 @@
-jsonmodel_type,title,level,extents_portion,extents_type,extents_container_summary,extents_number,dates_type,dates_label,dates_expression,parent,resource,component_id,agent_type,agent_primary_name
-archival_object,Material from Coles Myer merger press conferences,series,whole,metres,5 boxes,1,single,creation,2001,,347,COMY29170,corporate,G.J. Coles & Coy. Ltd.
-archival_object,Material related to Coles Myer merger,subseries,whole,metres,4 boxes,1,single,creation,2001,COMY29170,347,COMY29171,corporate,The Myer Emporium Ltd.
-archival_object,News bulletin - Coles Myer merger announced,file,whole,metres,3 boxes,1,single,creation,2001,COMY29171,347,COMY29172,corporate,Coles Myer Ltd.
-archival_object,Purchase offer booklet for Myer Emporium Ltd. shares,otherlevel,whole,metres,2 boxes,1,single,creation,2001,COMY29172,347,COMY29173,corporate,Grace Bros. Pty. Ltd.
-archival_object,"News bulletin - ""Coles Proposes Merger with Myer""",item,whole,metres,1 boxes,1,single,creation,2001,COMY29173,347,COMY29174,corporate,Farmer & Co. Ltd.
+jsonmodel_type,title,level,extents_portion,extents_type,extents_container_summary,extents_number,dates_type,dates_label,dates_expression,parent,resource,component_id,agent_primary_name
+archival_object,Material from Coles Myer merger press conferences,series,whole,metres,5 boxes,1,single,creation,2001,,347,COMY29170,G.J. Coles & Coy. Ltd.
+archival_object,Material related to Coles Myer merger,subseries,whole,metres,4 boxes,1,single,creation,2001,COMY29170,347,COMY29171,The Myer Emporium Ltd.
+archival_object,News bulletin - Coles Myer merger announced,file,whole,metres,3 boxes,1,single,creation,2001,COMY29171,347,COMY29172,Coles Myer Ltd.
+archival_object,Purchase offer booklet for Myer Emporium Ltd. shares,otherlevel,whole,metres,2 boxes,1,single,creation,2001,COMY29172,347,COMY29173,Grace Bros. Pty. Ltd.
+archival_object,"News bulletin - ""Coles Proposes Merger with Myer""",item,whole,metres,1 boxes,1,single,creation,2001,COMY29173,347,COMY29174,Farmer & Co. Ltd.
