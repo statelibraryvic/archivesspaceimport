@@ -54,7 +54,7 @@ function archival_object($csvArray,$dbh,$authenticationString) {
     );
 
     // Add linked agent if provided
-    $agent_ref = linkAgent($row,$dbh,$authenticationString);
+    $agent_ref = linkAgent($row['agent_primary_name'],$dbh,$authenticationString);
     if (isset($agent_ref)) {
       $data['linked_agents'] = [[
                                 "role"  => 'source',
@@ -117,7 +117,8 @@ function agent_object($csvArray,$dbh,$authenticationString) {
   foreach ($csvArray as $row) {   // Loop through CSV file
     print 'Loading ' . $row['authority_id'] . "\n";
 
-    $agent = linkAgent($row,$dbh,$authenticationString);
+    $agent = linkAgent($row['agent_primary_name'],$dbh,$authenticationString);
+    $relatedAgent = linkAgent($row['related_agent_primary_name'],$dbh,$authenticationString);
 
     // API request
     $data = array("jsonmodel_type" => "agent_corporate_entity",
@@ -126,9 +127,15 @@ function agent_object($csvArray,$dbh,$authenticationString) {
                                         "jsonmodel_type" => "name_corporate_entity",
                                         "sort_name"      => $row['agent_primary_name'],
                                         "primary_name"   => $row['agent_primary_name'],
-                                        "source"         => "ingest"
+                                        "source"         => "ingest",
+                                        "authority_id"   => $row['authority_id']
                                       ]],
-                  "lock_version"   => $agent['lock_version']
+                  "lock_version"   => $agent['lock_version'],
+                  "related_agents" => [[
+                                        "jsonmodel_type" => $row['related_agent_type'],
+                                        "relator"        => $row['related_agent_relator'],
+                                        "ref"            => $relatedAgent['ref']
+                                      ]]
     );
 
     // Add notes
@@ -230,10 +237,10 @@ function openDB() {
 
 }
 
-function linkAgent($row,$dbh,$authenticationString) {
+function linkAgent($agent_primary_name,$dbh,$authenticationString) {
 
   // Make sure that the agent has all required fields
-  if (isset($row['agent_primary_name'])) {
+  if (isset($agent_primary_name)) {
 
     $query = "SELECT
                 n.agent_corporate_entity_id, a.lock_version
@@ -244,7 +251,7 @@ function linkAgent($row,$dbh,$authenticationString) {
                 AND n.agent_corporate_entity_id = a.id";
     $stmt = $dbh->prepare($query);
 
-    $stmt->bind_param('s', $row['agent_primary_name']);
+    $stmt->bind_param('s', $agent_primary_name);
     $stmt->execute();
 
     // Hopefully there is only one result returned, if not we do not process any more instructions within the loop
@@ -265,11 +272,12 @@ function linkAgent($row,$dbh,$authenticationString) {
                     "agent_type"     => "agent_corporate_entity",
                     "names"          => [[
                                           "jsonmodel_type" => "name_corporate_entity",
-                                          "sort_name"      => $row['agent_primary_name'],
-                                          "primary_name"   => $row['agent_primary_name'],
+                                          "sort_name"      => $agent_primary_name,
+                                          "primary_name"   => $agent_primary_name,
                                           "source"          => "ingest"
                                         ]]
       );
+
       $data_string = json_encode($data);
 
       $ch = curl_init('***REMOVED***/agents/corporate_entities');
