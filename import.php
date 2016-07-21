@@ -6,7 +6,7 @@ if (!isset($argv[1])) { print "Missing import file....exiting\n"; exit; }
 $filename = $argv[1];
 $csvArray = ImportCSV2Array($filename);
 
-if (!isset($argv[2])) { print "Missing function call. Possible calls are [agent,archival_object]....exiting\n"; exit; }
+if (!isset($argv[2])) { print "Missing function call. Possible calls are [agent_object,archival_object]....exiting\n"; exit; }
 $functionCall = $argv[2];
 
 // Authenticate user
@@ -23,7 +23,7 @@ if ($functionCall == 'agent_object') {
   print "Archival Object\n";
   archival_object($csvArray,$dbh,$authenticationString);
 } else {
-  print "Invalid function call....exiting\n"; exit;
+  print "Invalid function call. Possible calls are [agent_object,archival_object]....exiting\n"; exit;
 }
 
 function archival_object($csvArray,$dbh,$authenticationString) {
