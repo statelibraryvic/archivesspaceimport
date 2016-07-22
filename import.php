@@ -130,17 +130,32 @@ function agent_object($csvArray,$dbh,$authenticationString) {
                                         "source"         => "ingest",
                                         "authority_id"   => $row['authority_id']
                                       ]],
-                  "lock_version"   => $agent['lock_version'],
-                  "related_agents" => [[
-                                        "jsonmodel_type" => $row['related_agent_type'],
-                                        "relator"        => $row['related_agent_relator'],
-                                        "ref"            => $relatedAgent['ref']
-                                      ]]
+                  "lock_version"   => $agent['lock_version']
     );
+
+    // Add existing related agents back into the data structure
+    if (isset($agent['related_agents'])) { $data['related_agents'] = $agent['related_agents']; }
+
+    $data['related_agents'][] = array(
+      "jsonmodel_type" => $row['related_agent_type'],
+      "relator"        => $row['related_agent_relator'],
+      "ref"            => $relatedAgent['ref'],
+      "description"    => $row['related_agent_description']
+    );
+
+    // Add dates to related agents
+    if (isset($row['date_start'],$row['date_end'])) {
+      $data['related_agents'][count($data['related_agents'])-1]['dates'] = array(
+                                            "date_type"         => "range",
+                                            "label"             => "agent_relation",
+                                            "jsonmodel_type"    => "date",
+                                            "begin"             => $row['date_start'],
+                                            "end"               => $row['date_end']
+                                          );
+    }
 
     // Add notes
     if (isset($row['note1'],$row['note2'],$row['note3'])) {
-      print "We have notes\n";
       $data['notes'] = [["jsonmodel_type" => "note_bioghist"]];
 
       $notesArray = array('note1','note2','note3');
@@ -262,6 +277,19 @@ function linkAgent($agent_primary_name,$dbh,$authenticationString) {
       $stmt->bind_result($agent['id'],$agent['lock_version']);
       $stmt->fetch();
       $agent['ref'] = "/agents/corporate_entities/" . $agent['id'];
+
+      // Grab the existing related agents so we don't lose it when we update the record
+      $ch = curl_init('***REMOVED***/agents/corporate_entities/926');
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+          'Content-Type: application/json',
+          'X-ArchivesSpace-Session: ' . $authenticationString->session)
+      );
+
+      $result = curl_exec($ch);
+
+      $result = json_decode($result);
+      $agent['related_agents'] = $result->related_agents;
 
       return $agent;
 
