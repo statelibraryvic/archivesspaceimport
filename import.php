@@ -149,8 +149,7 @@ function agent_object($csvArray,$dbh,$authenticationString) {
                                             "date_type"         => "range",
                                             "label"             => "agent_relation",
                                             "jsonmodel_type"    => "date",
-                                            "begin"             => $row['date_start'],
-                                            "end"               => $row['date_end']
+                                            "expression"        => $row['date_start'] . ' - ' . $row['date_end']
                                           );
     }
 
