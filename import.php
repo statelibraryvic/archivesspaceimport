@@ -115,20 +115,29 @@ function archival_object($csvArray,$dbh,$authenticationString) {
 function agent_object($csvArray,$dbh,$authenticationString) {
 
   foreach ($csvArray as $row) {   // Loop through CSV file
-    print 'Loading ' . $row['authority_id'] . "\n";
 
-    $agent = linkAgent($row['agent_primary_name'],$dbh,$authenticationString);
-    $relatedAgent = linkAgent($row['related_agent_primary_name'],$dbh,$authenticationString);
+    if ($row['name_type'] == 'Person') {
+      $apiCall       = '/agents/people';
+      $containerType = 'agent_person';
+      $nameType      = 'name_person';
+    } else {
+      $apiCall       = '/agents/corporate_entities';
+      $containerType = 'agent_corporate_entity';
+      $nameType      = 'name_corporate_entity';
+    }
+
+    print 'Loading ' . $row['agent_primary_name'] . "\n";
+
+    $agent = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['name_type']);
 
     // API request
-    $data = array("jsonmodel_type" => "agent_corporate_entity",
-                  "agent_type"     => "agent_corporate_entity",
+    $data = array("jsonmodel_type" => "$containerType",
+                  "agent_type"     => "$containerType",
                   "names"          => [[
-                                        "jsonmodel_type" => "name_corporate_entity",
+                                        "jsonmodel_type" => "$nameType",
                                         "sort_name"      => $row['agent_primary_name'],
                                         "primary_name"   => $row['agent_primary_name'],
-                                        "source"         => "ingest",
-                                        "authority_id"   => $row['authority_id']
+                                        "source"         => "ingest"
                                       ]],
                   "lock_version"   => $agent['lock_version']
     );
@@ -136,30 +145,41 @@ function agent_object($csvArray,$dbh,$authenticationString) {
     // Add existing related agents back into the data structure
     if (isset($agent['related_agents'])) { $data['related_agents'] = $agent['related_agents']; }
 
-    $data['related_agents'][] = array(
-      "jsonmodel_type" => $row['related_agent_type'],
-      "relator"        => $row['related_agent_relator'],
-      "ref"            => $relatedAgent['ref'],
-      "description"    => $row['related_agent_description']
-    );
+    // Only add things applicable to corporate entities
+    if ($row['name_type'] == 'Corporate Entity') {
+      $data['names'][0]['authority_id'] = $row['authority_id'];
 
-    // Add dates to related agents
-    if (isset($row['date_start'],$row['date_end'])) {
-      $data['related_agents'][count($data['related_agents'])-1]['dates'] = array(
-                                            "date_type"         => "range",
-                                            "label"             => "agent_relation",
-                                            "jsonmodel_type"    => "date",
-                                            "expression"        => $row['date_start'] . ' - ' . $row['date_end']
-                                          );
+      $relatedAgent = linkAgent($row['related_agent_primary_name'],$dbh,$authenticationString,$row['name_type']);
+
+      $data['related_agents'][] = array(
+        "jsonmodel_type" => $row['related_agent_type'],
+        "relator"        => $row['related_agent_relator'],
+        "ref"            => $relatedAgent['ref'],
+        "description"    => $row['related_agent_description']
+      );
+
+      // Add dates to related agents
+      if ((!empty($row['date_start'])) && (!empty($row['date_end']))) {
+        $data['related_agents'][count($data['related_agents'])-1]['dates'] = array(
+                                              "date_type"         => "range",
+                                              "label"             => "agent_relation",
+                                              "jsonmodel_type"    => "date",
+                                              "expression"        => $row['date_start'] . ' - ' . $row['date_end']
+                                            );
+      }
+
+    } else {
+      $data['names'][0]['name_order'] = 'inverted';
     }
 
     // Add notes
-    if (isset($row['note1'],$row['note2'],$row['note3'])) {
+    if ((!empty($row['note1'])) || (!empty($row['note2'])) || (!empty($row['note3']))) {
+
       $data['notes'] = [["jsonmodel_type" => "note_bioghist"]];
 
       $notesArray = array('note1','note2','note3');
       foreach ($notesArray as $noteRow) {
-        if (isset($row[$noteRow])) {
+        if (!empty($row[$noteRow])) {
           $data['notes'][0]['subnotes'][] = array(
                                              "jsonmodel_type" => "note_text",
                                              "content"        => $row[$noteRow]
@@ -182,6 +202,9 @@ function agent_object($csvArray,$dbh,$authenticationString) {
 
     $result = curl_exec($ch);
     echo $result;
+
+    // Clear variables for next loop iteration
+    unset($data,$agent,$relatedAgent);
 
   }
 
@@ -251,20 +274,30 @@ function openDB() {
 
 }
 
-function linkAgent($agent_primary_name,$dbh,$authenticationString) {
+function linkAgent($agent_primary_name,$dbh,$authenticationString,$name_type) {
+
+  if ($name_type == 'Person') {
+    $apiCall       = '/agents/people';
+    $containerType = 'agent_person';
+    $nameType      = 'name_person';
+    $query         = 'SELECT n.agent_person_id, a.lock_version
+                      FROM   name_person n, agent_person a
+                      WHERE  n.primary_name = ?
+                         AND n.agent_person_id = a.id';
+  } else {
+    $apiCall       = '/agents/corporate_entities';
+    $containerType = 'agent_corporate_entity';
+    $nameType      = 'name_corporate_entity';
+    $query         = 'SELECT n.agent_corporate_entity_id, a.lock_version
+                      FROM   name_corporate_entity n, agent_corporate_entity a
+                      WHERE  n.primary_name = ?
+                         AND n.agent_corporate_entity_id = a.id';
+  }
 
   // Make sure that the agent has all required fields
   if (isset($agent_primary_name)) {
 
-    $query = "SELECT
-                n.agent_corporate_entity_id, a.lock_version
-              FROM
-                name_corporate_entity n, agent_corporate_entity a
-              WHERE
-                    n.primary_name = ?
-                AND n.agent_corporate_entity_id = a.id";
     $stmt = $dbh->prepare($query);
-
     $stmt->bind_param('s', $agent_primary_name);
     $stmt->execute();
 
@@ -275,10 +308,10 @@ function linkAgent($agent_primary_name,$dbh,$authenticationString) {
     if ($row_cnt == 1) {
       $stmt->bind_result($agent['id'],$agent['lock_version']);
       $stmt->fetch();
-      $agent['ref'] = "/agents/corporate_entities/" . $agent['id'];
+      $agent['ref'] = $apiCall . '/' . $agent['id'];
 
       // Grab the existing related agents so we don't lose it when we update the record
-      $ch = curl_init('***REMOVED***/agents/corporate_entities/926');
+      $ch = curl_init('***REMOVED***' . $agent['ref']);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
       curl_setopt($ch, CURLOPT_HTTPHEADER, array(
           'Content-Type: application/json',
@@ -295,19 +328,24 @@ function linkAgent($agent_primary_name,$dbh,$authenticationString) {
     } elseif ($row_cnt == 0) {
 
       // API request
-      $data = array("jsonmodel_type" => "agent_corporate_entity",
-                    "agent_type"     => "agent_corporate_entity",
+      $data = array("jsonmodel_type" => $containerType,
+                    "agent_type"     => $containerType,
                     "names"          => [[
-                                          "jsonmodel_type" => "name_corporate_entity",
+                                          "jsonmodel_type" => $nameType,
                                           "sort_name"      => $agent_primary_name,
                                           "primary_name"   => $agent_primary_name,
-                                          "source"          => "ingest"
+                                          "source"         => "ingest"
                                         ]]
       );
 
+      // Only add things applicable to corporate entities
+      if ($name_type == 'Person') {
+        $data['names'][0]['name_order'] = 'inverted';
+      }
+
       $data_string = json_encode($data);
 
-      $ch = curl_init('***REMOVED***/agents/corporate_entities');
+      $ch = curl_init('***REMOVED***' . $apiCall);
       curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
       curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
