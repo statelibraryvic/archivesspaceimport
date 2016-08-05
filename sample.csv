@@ -1,6 +1,6 @@
-jsonmodel_type,title,level,extents_portion,extents_type,extents_container_summary,extents_number,dates_type,dates_label,dates_expression,parent,resource,component_id,agent_primary_name
-archival_object,Material from Coles Myer merger press conferences,series,whole,metres,5 boxes,1,single,creation,2001,,347,COMY29170,G.J. Coles & Coy. Ltd.
-archival_object,Material related to Coles Myer merger,subseries,whole,metres,4 boxes,1,single,creation,2001,COMY29170,347,COMY29171,The Myer Emporium Ltd.
-archival_object,News bulletin - Coles Myer merger announced,file,whole,metres,3 boxes,1,single,creation,2001,COMY29171,347,COMY29172,Coles Myer Ltd.
-archival_object,Purchase offer booklet for Myer Emporium Ltd. shares,otherlevel,whole,metres,2 boxes,1,single,creation,2001,COMY29172,347,COMY29173,Grace Bros. Pty. Ltd.
-archival_object,"News bulletin - ""Coles Proposes Merger with Myer""",item,whole,metres,1 boxes,1,single,creation,2001,COMY29173,347,COMY29174,Farmer & Co. Ltd.
+jsonmodel_type,title,level,extents_portion,extents_type,extents_container_summary,extents_number,dates_type,dates_label,dates_expression,parent,resource,component_id,agent_type,agent_primary_name
+archival_object,Grace Bros. & Farmers/Myer (NSW) branch stores files,series,whole,metres,5 boxes,1,single,creation,2001,,347,GRACS012,person,"Grace, Michael"
+archival_object,Carlingford Store - mechanical services tenders,otherlevel,whole,metres,4 boxes,1,single,creation,2001,GRACS012,347,COMY00479,person,"Moffatt, Charlotte"
+archival_object,Parramatta Store negatives,otherlevel,whole,metres,3 boxes,1,single,creation,2001,GRACS012,347,COMY00456,corporate,New World Supermarket Pty. Ltd.
+archival_object,The Model Trader,otherlevel,whole,metres,2 boxes,1,single,creation,2001,GRACS012,347,COMY00459,corporate,G.J. Coles & Coy. Ltd.
+archival_object,Macquaries Store - 7. 'The Position at Macquarie' folio produced by Macquarie Shopping Centre Joint Venture re industrial disputes at Macquarie Centre. ,otherlevel,whole,metres,1 boxes,1,single,creation,2001,GRACS012,347,COMY0020,person,"Grace, Michael"

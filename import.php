@@ -54,11 +54,11 @@ function archival_object($csvArray,$dbh,$authenticationString) {
     );
 
     // Add linked agent if provided
-    $agent_ref = linkAgent($row['agent_primary_name'],$dbh,$authenticationString);
+    $agent_ref = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['agent_type']);
     if (isset($agent_ref)) {
       $data['linked_agents'] = [[
                                 "role"  => 'source',
-                                 "ref"  => $agent_ref
+                                 "ref"  => $agent_ref['ref']
                                ]];
     }
 
@@ -89,7 +89,7 @@ function archival_object($csvArray,$dbh,$authenticationString) {
     $data_string = json_encode($data);
 
     // DEBUG
-    //var_dump($data) . "\n";
+    //print_r($data) . "\n";
     // print $data_string . "\n";
 
 
