@@ -1,6 +1,8 @@
 <?php
 
-$dbh      = opendb();
+include 'settings.php';
+
+$dbh      = opendb($database);
 
 if (!isset($argv[1])) { print "Missing import file....exiting\n"; exit; }
 $filename = $argv[1];
@@ -11,22 +13,22 @@ $functionCall = $argv[2];
 
 // Authenticate user
 $params = array(
-   "password" => "***REMOVED***"
+   "password" => $api['pass']
 );
-$authenticationString = json_decode(httpPost("***REMOVED***/users/***REMOVED***/login",$params));
+$authenticationString = json_decode(httpPost($api['host'] . '/users/' . $api['user'] . '/login',$params));
 echo $authenticationString->session . "\n";
 
 if ($functionCall == 'agent_object') {
   print "Agent\n";
-  agent_object($csvArray,$dbh,$authenticationString);
+  agent_object($csvArray,$dbh,$authenticationString,$api);
 } else if ($functionCall == 'archival_object') {
   print "Archival Object\n";
-  archival_object($csvArray,$dbh,$authenticationString);
+  archival_object($csvArray,$dbh,$authenticationString,$api);
 } else {
   print "Invalid function call. Possible calls are [agent_object,archival_object]....exiting\n"; exit;
 }
 
-function archival_object($csvArray,$dbh,$authenticationString) {
+function archival_object($csvArray,$dbh,$authenticationString,$api) {
 
   foreach ($csvArray as $row) {   // Loop through CSV file
     print 'Loading ' . $row['component_id'] . "\n";
@@ -54,7 +56,7 @@ function archival_object($csvArray,$dbh,$authenticationString) {
     );
 
     // Add linked agent if provided
-    $agent_ref = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['agent_type']);
+    $agent_ref = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['agent_type'],$api);
     if (isset($agent_ref)) {
       $data['linked_agents'] = [[
                                 "role"  => 'source',
@@ -94,7 +96,7 @@ function archival_object($csvArray,$dbh,$authenticationString) {
 
 
     // API request
-    $ch = curl_init('***REMOVED***/repositories/5/archival_objects');
+    $ch = curl_init($api['host'] . '/repositories/5/archival_objects');
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -112,7 +114,7 @@ function archival_object($csvArray,$dbh,$authenticationString) {
 
 }
 
-function agent_object($csvArray,$dbh,$authenticationString) {
+function agent_object($csvArray,$dbh,$authenticationString,$api) {
 
   foreach ($csvArray as $row) {   // Loop through CSV file
 
@@ -128,7 +130,7 @@ function agent_object($csvArray,$dbh,$authenticationString) {
 
     print 'Loading ' . $row['agent_primary_name'] . "\n";
 
-    $agent = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['name_type']);
+    $agent = linkAgent($row['agent_primary_name'],$dbh,$authenticationString,$row['name_type'],$api);
 
     // API request
     $data = array("jsonmodel_type" => "$containerType",
@@ -149,7 +151,7 @@ function agent_object($csvArray,$dbh,$authenticationString) {
     if ($row['name_type'] == 'Corporate Entity') {
       $data['names'][0]['authority_id'] = $row['authority_id'];
 
-      $relatedAgent = linkAgent($row['related_agent_primary_name'],$dbh,$authenticationString,$row['name_type']);
+      $relatedAgent = linkAgent($row['related_agent_primary_name'],$dbh,$authenticationString,$row['name_type'],$api);
 
       $data['related_agents'][] = array(
         "jsonmodel_type" => $row['related_agent_type'],
@@ -190,7 +192,7 @@ function agent_object($csvArray,$dbh,$authenticationString) {
 
     $data_string = json_encode($data);
 
-    $ch = curl_init('***REMOVED***' . $agent['ref']);
+    $ch = curl_init($api['host'] . $agent['ref']);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -260,9 +262,9 @@ function ImportCSV2Array($filename) {
   return $results;
 }
 
-function openDB() {
+function openDB($database) {
 
-  $dbh = new mysqli("***REMOVED***","***REMOVED***","***REMOVED***","***REMOVED***");
+  $dbh = new mysqli($database['host'],$database['user'],$database['pass'],$database['db_name']);
 
   /* check connection */
   if ($dbh->connect_errno) {
@@ -274,7 +276,7 @@ function openDB() {
 
 }
 
-function linkAgent($agent_primary_name,$dbh,$authenticationString,$name_type) {
+function linkAgent($agent_primary_name,$dbh,$authenticationString,$name_type,$api) {
 
   if ($name_type == 'Person') {
     $apiCall       = '/agents/people';
@@ -311,7 +313,7 @@ function linkAgent($agent_primary_name,$dbh,$authenticationString,$name_type) {
       $agent['ref'] = $apiCall . '/' . $agent['id'];
 
       // Grab the existing related agents so we don't lose it when we update the record
-      $ch = curl_init('***REMOVED***' . $agent['ref']);
+      $ch = curl_init($api['host'] . $agent['ref']);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
       curl_setopt($ch, CURLOPT_HTTPHEADER, array(
           'Content-Type: application/json',
@@ -345,7 +347,7 @@ function linkAgent($agent_primary_name,$dbh,$authenticationString,$name_type) {
 
       $data_string = json_encode($data);
 
-      $ch = curl_init('***REMOVED***' . $apiCall);
+      $ch = curl_init($api['host'] . $apiCall);
       curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
       curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
