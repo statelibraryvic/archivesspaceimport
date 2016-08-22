@@ -5,8 +5,9 @@
                     'pass'    => '',
                     'db_name' => '');
 
-  $api = array('host' => '',
-               'user' => '',
-               'pass' => '');
+  $api = array('host'          => '',
+               'user'          => '',
+               'pass'          => '',
+               'repository_id' => '');
 
 ?>

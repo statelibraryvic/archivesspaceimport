@@ -50,7 +50,7 @@ function archival_object($csvArray,$dbh,$authenticationString,$api) {
                                         "expression"        => $row['dates_expression']
                                       ]],
                   "resource"       => [
-                                        "ref"    => "/repositories/5/resources/" . $row['resource']
+                                        "ref"    => '/repositories/' . $api['repository_id'] . '/resources/' . $row['resource']
                                       ],
                   "component_id"   => $row['component_id']
     );
@@ -79,7 +79,7 @@ function archival_object($csvArray,$dbh,$authenticationString,$api) {
       if ($row_cnt == 1) {
         $stmt->bind_result($parent_id);
         $stmt->fetch();
-        $data['parent'] = [ "ref" => "/repositories/5/archival_objects/" . $parent_id ];
+        $data['parent'] = [ "ref" => '/repositories/' . $api['repository_id'] . '/archival_objects/' . $parent_id ];
       } elseif ($row_cnt == 0) {
         echo "The parent id you specified does not exist...skipping row\n"; continue;
       } elseif ($row_cnt > 1) {
@@ -96,7 +96,7 @@ function archival_object($csvArray,$dbh,$authenticationString,$api) {
 
 
     // API request
-    $ch = curl_init($api['host'] . '/repositories/5/archival_objects');
+    $ch = curl_init($api['host'] . '/repositories/' . $api['repository_id'] . '/archival_objects');
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

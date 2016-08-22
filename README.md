@@ -8,6 +8,6 @@ Clone the repository & create a settings.php file in the base directory. A sampl
 
 ## Usage
 
-php import.php <csv file> <object>
+php import.php **csv file** **object**
 
 Where object can be **archival_object** or **agent_object**. Example data sets of both agents & archival objects can be found in the repository
